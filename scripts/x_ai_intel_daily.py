@@ -110,6 +110,37 @@ BASE_FIELDS = [
 ]
 
 
+OFFICIAL_ACCOUNTS = {
+    "openai",
+    "googledeepmind",
+    "nvidia",
+    "nvidiaai",
+    "anthropicai",
+    "metaai",
+    "deepseek_ai",
+    "alibaba_qwen",
+    "midjourney",
+    "kimi_moonshot",
+    "minimax_ai",
+    "bytedancetalk",
+    "googleai",
+    "groqinc",
+    "hailuo_ai",
+    "mit_csail",
+    "ibmdata",
+    "claudeai",
+    "googlelabs",
+    "geminiapp",
+    "notebooklm",
+    "flowbygoogle",
+    "stitchbygoogle",
+    "googleaistudio",
+    "magnific",
+    "runware",
+    "designarena",
+}
+
+
 def clean_text(value: object, limit: int = 300) -> str:
     text = " ".join(str(value or "").replace("\n", " ").split()).strip()
     if len(text) <= limit:
@@ -163,6 +194,13 @@ def format_original_excerpt(text: str) -> str:
 
 def normalize_handle(value: str) -> str:
     return value.strip().lstrip("@").lower()
+
+
+def account_priority_weight(handle: str) -> float:
+    normalized = normalize_handle(handle)
+    if normalized in OFFICIAL_ACCOUNTS:
+        return 0.55
+    return 1.15
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -403,7 +441,8 @@ def score_post(post: Post, hits: int, now: datetime, lookback_hours: int) -> flo
     age_hours = max(0.0, (now - post.created_at).total_seconds() / 3600)
     freshness = max(0.0, lookback_hours - min(age_hours, lookback_hours))
     engagement = post.likes + post.replies * 2 + post.reposts * 2
-    return hits * 35 + math.log1p(max(0, engagement)) * 10 + freshness
+    base_score = hits * 35 + math.log1p(max(0, engagement)) * 10 + freshness
+    return base_score * account_priority_weight(post.handle)
 
 
 def build_items(posts: list[Post], config: dict[str, Any]) -> list[Item]:
