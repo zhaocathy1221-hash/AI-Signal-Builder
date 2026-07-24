@@ -9,6 +9,8 @@ import re
 import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -281,6 +283,53 @@ def parse_x_date(value: object) -> datetime | None:
         return parsed.astimezone(TZ)
     except ValueError:
         return None
+
+
+def load_feed_payload(config: dict[str, Any], config_path: Path) -> dict[str, Any]:
+    feed_url = str(config.get("feed_url") or "").strip()
+    if feed_url:
+        try:
+            with urllib.request.urlopen(feed_url, timeout=int(config.get("feed_timeout_seconds") or 30)) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (OSError, urllib.error.URLError, json.JSONDecodeError):
+            pass
+
+    feed_file = str(config.get("feed_file") or "feeds/x-ai-feed.json")
+    feed_path = resolve_config_path(feed_file, config_path)
+    return json.loads(feed_path.read_text(encoding="utf-8"))
+
+
+def post_from_feed_item(raw: dict[str, Any]) -> Post | None:
+    created = parse_x_date(raw.get("created_at") or raw.get("createdAt"))
+    if not created:
+        return None
+    metrics = raw.get("metrics") or {}
+    account = str(raw.get("account") or raw.get("handle") or "").strip()
+    if not account:
+        return None
+    return Post(
+        handle="@" + account.lstrip("@"),
+        text=clean_text(raw.get("text") or raw.get("text_excerpt_300"), 1200),
+        url=str(raw.get("url") or "").strip(),
+        created_at=created,
+        likes=int(metrics.get("likes") or raw.get("likes") or 0),
+        replies=int(metrics.get("replies") or raw.get("replies") or 0),
+        reposts=int(metrics.get("reposts") or metrics.get("retweets") or raw.get("reposts") or raw.get("retweets") or 0),
+    )
+
+
+def load_posts_from_feed(config: dict[str, Any], config_path: Path) -> tuple[list[Post], dict[str, Any]]:
+    payload = load_feed_payload(config, config_path)
+    posts: list[Post] = []
+    for raw in payload.get("items") or []:
+        if config.get("exclude_retweets", True) and raw.get("is_retweet"):
+            continue
+        if config.get("exclude_replies", True) and raw.get("is_reply"):
+            continue
+        post = post_from_feed_item(raw)
+        if post and post.url:
+            posts.append(post)
+    return posts, payload
 
 
 def term_present(text: str, term: str) -> bool:
@@ -606,6 +655,7 @@ def sync_feishu_base(payload: dict[str, Any], config: dict[str, Any], *, dry_run
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect X AI creator intelligence and build daily recommendations.")
     parser.add_argument("--config", type=Path, default=SKILL_DIR / "references" / "config.example.json")
+    parser.add_argument("--source", choices=["xreach", "feed"], help="Override config.source_type.")
     parser.add_argument("--dry-run", action="store_true", help="Preview only; do not send Feishu messages.")
     parser.add_argument("--sync-feishu-base", action="store_true", help="Create new Feishu Base rows, deduped by source URL.")
     parser.add_argument("--send-feishu", action="store_true", help="Send the short briefing to Feishu.")
@@ -616,23 +666,31 @@ def main() -> int:
     args = parse_args()
     config_path = args.config.expanduser().resolve()
     config = load_json(config_path)
+    source_type = args.source or str(config.get("source_type") or "xreach")
     handles_path = resolve_config_path(str(config.get("handles_file") or "references/default-handles.txt"), config_path)
     handles = load_handles(handles_path)
 
     posts: list[Post] = []
     failures: dict[str, str] = {}
-    max_workers = max(1, int(config.get("max_workers") or 4))
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_map = {executor.submit(fetch_handle, handle, config): handle for handle in handles}
-        for future in as_completed(future_map):
-            handle, handle_posts, error = future.result()
-            if error:
-                failures[handle] = error
-            posts.extend(handle_posts)
+    feed_meta: dict[str, Any] | None = None
+
+    if source_type == "feed":
+        posts, feed_meta = load_posts_from_feed(config, config_path)
+    else:
+        max_workers = max(1, int(config.get("max_workers") or 4))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_map = {executor.submit(fetch_handle, handle, config): handle for handle in handles}
+            for future in as_completed(future_map):
+                handle, handle_posts, error = future.result()
+                if error:
+                    failures[handle] = error
+                posts.extend(handle_posts)
 
     items = build_items(posts, config)
     payload: dict[str, Any] = {
         "generated_at": datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S"),
+        "source_type": source_type,
+        "feed_generated_at": feed_meta.get("feed_generated_at") if feed_meta else None,
         "lookback_hours": int(config.get("lookback_hours") or 72),
         "handles_total": len(handles),
         "handles_succeeded": len(handles) - len(failures),

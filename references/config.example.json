@@ -1,5 +1,9 @@
 {
   "handles_file": "references/default-handles.txt",
+  "source_type": "xreach",
+  "feed_url": "https://raw.githubusercontent.com/zhaocathy1221-hash/AI-Signal-Builder/main/feeds/x-ai-feed.json",
+  "feed_file": "feeds/x-ai-feed.json",
+  "feed_timeout_seconds": 30,
   "output_dir": "reports",
   "lookback_hours": 72,
   "max_items": 10,

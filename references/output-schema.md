@@ -1,5 +1,39 @@
 # Output Schema
 
+## Central Feed
+
+`feeds/x-ai-feed.json` is the shared source for feed-mode users:
+
+```json
+{
+  "feed_generated_at": "2026-07-24T10:00:00+08:00",
+  "source_window_hours": 72,
+  "accounts_total": 83,
+  "accounts_succeeded": 83,
+  "accounts_failed": 0,
+  "posts_total": 300,
+  "source_type": "xreach",
+  "items": []
+}
+```
+
+Each feed item includes:
+
+| Field | Meaning |
+| --- | --- |
+| `tweet_id` | X post id, when available |
+| `account` | X handle |
+| `url` | Source X URL |
+| `created_at` | Source post time |
+| `text` | Public feed excerpt, capped at 300 chars |
+| `text_excerpt_300` | First 300 chars |
+| `metrics.likes` | Like count snapshot |
+| `metrics.replies` | Reply count snapshot |
+| `metrics.reposts` | Repost count snapshot |
+| `metrics.captured_at` | Metrics capture time |
+| `source_type` | Feed collection method |
+| `dedupe_key` | Tweet id or URL |
+
 ## JSON Report
 
 The script writes:

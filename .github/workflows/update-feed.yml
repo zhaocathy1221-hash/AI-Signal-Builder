@@ -1,0 +1,42 @@
+name: Update X AI Feed
+
+on:
+  schedule:
+    # 02:00 UTC = 10:00 Asia/Shanghai
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-feed:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install xreach
+        run: npm install -g xreach-cli@0.3.3
+
+      - name: Generate central feed
+        env:
+          XREACH_PROXY: ${{ secrets.XREACH_PROXY }}
+          XREACH_AUTH_TOKEN: ${{ secrets.XREACH_AUTH_TOKEN }}
+          XREACH_CT0: ${{ secrets.XREACH_CT0 }}
+        run: python3 scripts/generate_central_feed.py --output feeds/x-ai-feed.json
+
+      - name: Commit feed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add feeds/x-ai-feed.json
+          git diff --cached --quiet || git commit -m "Update X AI feed"
+          git push

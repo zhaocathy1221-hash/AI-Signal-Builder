@@ -64,6 +64,37 @@ git clone https://github.com/zhaocathy1221-hash/AI-Signal-Builder.git ~/.codex/s
 cd ~/.codex/skills/x-ai-intel
 ```
 
+## 两种使用模式
+
+### 模式 A：中心 feed 免配置模式（推荐普通用户）
+
+用户不需要安装 `xreach`，也不需要配置 X 代理、cookie 或 token。
+
+你只需要读取维护者每天更新的中心 feed：
+
+```bash
+cp references/config.example.json config.local.json
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --dry-run
+```
+
+默认中心 feed：
+
+```text
+https://raw.githubusercontent.com/zhaocathy1221-hash/AI-Signal-Builder/main/feeds/x-ai-feed.json
+```
+
+公开 feed 只保留原文前 300 字、互动快照和原帖链接，不保存长帖全文。
+
+如果预览没问题，再正式生成日报：
+
+```bash
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed
+```
+
+### 模式 B：本地 xreach 采集模式（适合进阶用户）
+
+用户自己在本地抓 X，适合想改账号名单、改代理、完全自控采集的人。
+
 安装 X 采集工具：
 
 ```bash
@@ -83,6 +114,18 @@ xreach tweets OpenAI -n 5 --json
 
 ```bash
 cp references/config.example.json config.local.json
+```
+
+如果使用中心 feed 模式，把 `config.local.json` 里的 `source_type` 改成：
+
+```json
+"source_type": "feed"
+```
+
+如果使用本地采集模式，保持：
+
+```json
+"source_type": "xreach"
 ```
 
 如果你访问 X 需要代理，在 `config.local.json` 里填写：
@@ -109,6 +152,12 @@ cp references/config.example.json config.local.json
 
 ```bash
 python3 scripts/x_ai_intel_daily.py --config config.local.json --dry-run
+```
+
+也可以临时指定 feed 模式，不改配置文件：
+
+```bash
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --dry-run
 ```
 
 `--dry-run` 会生成报告和推送预览，但不会写飞书，也不会发消息。
@@ -182,6 +231,13 @@ cd ~/.codex/skills/x-ai-intel
 python3 scripts/x_ai_intel_daily.py --config config.local.json --sync-feishu-base --send-feishu
 ```
 
+如果用中心 feed 模式：
+
+```bash
+cd ~/.codex/skills/x-ai-intel
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --sync-feishu-base --send-feishu
+```
+
 例如每天 10 点运行，就让你的调度器每天 10:00 执行上面的命令。
 
 ## 账号名单
@@ -237,6 +293,16 @@ references/default-handles.txt
 | 状态 | 默认待判断 |
 
 ## 常见问题
+
+### 0. 我不想配置 X，能不能直接用？
+
+可以。用中心 feed 模式：
+
+```bash
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --dry-run
+```
+
+这会读取仓库里的 `feeds/x-ai-feed.json`，不从你的电脑抓 X。
 
 ### 1. xreach 超时
 
@@ -312,8 +378,44 @@ export XREACH_PROXY=http://127.0.0.1:7890
 或：
 
 ```text
+使用中心 feed 模式跑一遍 AI Signal Builder，不要让我配置 X。
+```
+
+或：
+
+```text
 刷新 AI Signal Builder，并把结果写入飞书多维表格后推送到群里。
 ```
+
+## 维护者：更新中心 feed
+
+中心 feed 文件在：
+
+```text
+feeds/x-ai-feed.json
+```
+
+手动更新：
+
+```bash
+python3 scripts/generate_central_feed.py --output feeds/x-ai-feed.json
+```
+
+GitHub Actions 已配置为每天北京时间 10:00 自动更新：
+
+```text
+.github/workflows/update-feed.yml
+```
+
+如果在 GitHub Actions 里用 `xreach`，通常需要在仓库 Secrets 里配置：
+
+```text
+XREACH_PROXY
+XREACH_AUTH_TOKEN
+XREACH_CT0
+```
+
+其中 token / cookie 不要写进代码或配置文件。
 
 ## 这不是自动写作工具
 

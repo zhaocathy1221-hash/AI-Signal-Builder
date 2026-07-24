@@ -26,6 +26,12 @@ cp references/config.example.json config.local.json
 python3 scripts/x_ai_intel_daily.py --config config.local.json --dry-run
 ```
 
+For feed mode, set `"source_type": "feed"` in `config.local.json` or pass:
+
+```bash
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --dry-run
+```
+
 When the preview looks right:
 
 ```bash
@@ -52,7 +58,7 @@ Use `--send-feishu` only after the recipient group and bot identity are confirme
 
 1. Read `config.local.json`.
 2. Validate the handle list. The default list contains 83 AI / Agent / creator accounts.
-3. Fetch recent posts from each handle.
+3. Fetch recent posts from each handle with `xreach`, or read the central feed when `source_type` is `feed`.
 4. Exclude retweets and replies by default.
 5. Score candidates by keyword relevance, freshness, and engagement.
 6. Generate Markdown and JSON reports under `output_dir`.
@@ -69,6 +75,28 @@ python3 scripts/x_ai_intel_daily.py --config config.local.json --sync-feishu-bas
 ```
 
 For a 10:00 daily run, configure cron, launchd, Hermes, or another scheduler to run the same command. Do not store secrets in the scheduler command; keep them in the local authenticated tools or environment.
+
+## Central Feed Mode
+
+Use feed mode when users should not configure X access locally.
+
+```bash
+python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --dry-run
+```
+
+The default feed URL is:
+
+```text
+https://raw.githubusercontent.com/zhaocathy1221-hash/AI-Signal-Builder/main/feeds/x-ai-feed.json
+```
+
+Maintainers update the feed with:
+
+```bash
+python3 scripts/generate_central_feed.py --output feeds/x-ai-feed.json
+```
+
+GitHub Actions can run this daily at 10:00 Asia/Shanghai. It requires `xreach` and, in hosted environments, usually `XREACH_PROXY`, `XREACH_AUTH_TOKEN`, and `XREACH_CT0` secrets.
 
 ## Output Style
 
@@ -110,3 +138,5 @@ Preferred group message shape:
 - `references/default-handles.txt`: default 83-account AI watchlist.
 - `references/output-schema.md`: report and Feishu field mapping.
 - `scripts/x_ai_intel_daily.py`: runnable collector and daily briefing generator.
+- `scripts/generate_central_feed.py`: maintainer-side central feed generator.
+- `feeds/x-ai-feed.json`: latest shared feed for feed-mode users.
