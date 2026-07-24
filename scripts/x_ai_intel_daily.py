@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -114,6 +115,50 @@ def clean_text(value: object, limit: int = 300) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"
+
+
+def has_enough_chinese(text: str) -> bool:
+    return len(re.findall(r"[\u4e00-\u9fff]", text)) >= 5
+
+
+def should_add_chinese_translation(text: str) -> bool:
+    if not text or "中文翻译：" in text or "中文翻译:" in text:
+        return False
+    if has_enough_chinese(text):
+        return False
+    return len(re.findall(r"[A-Za-z]", text)) >= 20
+
+
+def translate_to_zh(text: str) -> str:
+    query = urllib.parse.urlencode(
+        {
+            "client": "gtx",
+            "sl": "auto",
+            "tl": "zh-CN",
+            "dt": "t",
+            "q": text[:1200],
+        }
+    )
+    url = "https://translate.googleapis.com/translate_a/single?" + query
+    try:
+        with urllib.request.urlopen(url, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+        return ""
+    try:
+        return "".join(part[0] for part in payload[0] if part and part[0]).strip()
+    except (TypeError, IndexError):
+        return ""
+
+
+def format_original_excerpt(text: str) -> str:
+    original = clean_text(text, 300)
+    if not should_add_chinese_translation(original):
+        return original
+    translation = translate_to_zh(original)
+    if not translation:
+        return original
+    return f"原文：\n{original}\n\n中文翻译：\n{translation}"
 
 
 def normalize_handle(value: str) -> str:
@@ -394,7 +439,7 @@ def build_items(posts: list[Post], config: dict[str, Any]) -> list[Item]:
                 account=post.handle,
                 topic=topic,
                 source_signal=signal,
-                original_excerpt=clean_text(post.text, 300),
+                original_excerpt=format_original_excerpt(post.text),
                 engagement=engagement,
                 url=post.url,
                 published_at=post.created_at.strftime("%Y-%m-%d %H:%M:%S"),
