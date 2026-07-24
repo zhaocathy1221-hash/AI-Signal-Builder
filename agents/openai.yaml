@@ -1,0 +1,4 @@
+interface:
+  display_name: "X AI 情报日报"
+  short_description: "采集 X 上的 AI 博主内容，生成每日选题推荐。"
+  default_prompt: "采集这 83 个 AI 博主最近 24-72 小时的 X 内容，生成今天最值得写的 5-10 个选题推荐。"
