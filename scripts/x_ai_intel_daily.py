@@ -401,7 +401,11 @@ def post_from_feed_item(raw: dict[str, Any]) -> Post | None:
     )
 
 
-def load_posts_from_feed(config: dict[str, Any], config_path: Path) -> tuple[list[Post], dict[str, Any]]:
+def load_posts_from_feed(
+    config: dict[str, Any],
+    config_path: Path,
+    allowed_handles: set[str] | None = None,
+) -> tuple[list[Post], dict[str, Any]]:
     payload = load_feed_payload(config, config_path)
     posts: list[Post] = []
     for raw in payload.get("items") or []:
@@ -410,6 +414,8 @@ def load_posts_from_feed(config: dict[str, Any], config_path: Path) -> tuple[lis
         if config.get("exclude_replies", True) and raw.get("is_reply"):
             continue
         post = post_from_feed_item(raw)
+        if post and allowed_handles is not None and normalize_handle(post.handle) not in allowed_handles:
+            continue
         if post and post.url:
             posts.append(post)
     return posts, payload
@@ -759,7 +765,7 @@ def main() -> int:
     feed_meta: dict[str, Any] | None = None
 
     if source_type == "feed":
-        posts, feed_meta = load_posts_from_feed(config, config_path)
+        posts, feed_meta = load_posts_from_feed(config, config_path, {normalize_handle(handle) for handle in handles})
     else:
         max_workers = max(1, int(config.get("max_workers") or 4))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:

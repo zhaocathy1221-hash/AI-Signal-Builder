@@ -2,7 +2,7 @@
 
 AI Signal Builder 是一个面向内容创作者的 X / Twitter AI 情报 Skill。
 
-它会采集 83 个 AI Builder、模型公司、中文 AI 实践者和创作者工具账号的近期内容，筛出高密度信号，并生成中文选题日报。
+它会采集 55 个 AI Builder、研究者、中文 AI 实践者和内容创作者账号的近期内容，筛出高密度信号，并生成中文选题日报。
 
 它的目标不是帮你刷更多信息，而是帮你每天动笔前先看到：
 
@@ -40,16 +40,16 @@ AI Signal Builder 是一个面向内容创作者的 X / Twitter AI 情报 Skill�
 
 采集时间：2026-07-24 14:24
 采集范围：X AI 情报账号
-扫描账号：83 个
+扫描账号：55 个
 抓取内容：852 条
-今日重点关注：@AndrewYNg、@dotey、@OpenAI
+今日重点关注：@AndrewYNg、@dotey、@karpathy
 
 本轮值得看的 5 个信号：
 
 1. Agent 工作流正在从聊天走向可复用流程
-@OpenAI：ChatGPT Voice 进入桌面端，可语音控制电脑并调度多个 Agent。
+@karpathy：分享用语音长时间 ramble 给 LLM 足够上下文的工作方式。
 对内容创作的启发：可以写普通人如何把重复工作沉淀成一个可复用的 AI 工作流。
-原帖：https://x.com/OpenAI/status/...
+原帖：https://x.com/karpathy/status/...
 
 更多查看：
 报告路径或飞书多维表格链接
@@ -105,7 +105,7 @@ npm install -g xreach-cli@0.3.3
 
 ```bash
 xreach -v
-xreach tweets OpenAI -n 5 --json
+xreach tweets karpathy -n 5 --json
 ```
 
 ## 配置
@@ -248,29 +248,25 @@ python3 scripts/x_ai_intel_daily.py --config config.local.json --source feed --s
 references/default-handles.txt
 ```
 
-当前包含 83 个账号，覆盖：
+当前包含 55 个账号，默认不包含官方模型、产品或机构账号，覆盖：
 
-- 官方模型与平台信号
 - AI 研究者与技术大佬
 - Agent 与 AI 编程实践者
 - 产品、商业与公司经营信号
 - 中文 AI 实践与内容现场
-- 内容、写作、知识管理与创作者工具
+- 内容、写作、知识管理与个人创作者
 - 争议、批评与反向观点
 
 代表账号包括：
 
 ```text
-@OpenAI
-@AnthropicAI
-@GoogleAI
 @karpathy
 @swyx
 @thsottiaux
 @dotey
 @op7418
 @bourneliu66
-@DesignArena
+@trq212
 ```
 
 你可以直接编辑 `references/default-handles.txt`，加入自己的观察账号。

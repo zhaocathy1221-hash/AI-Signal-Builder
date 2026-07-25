@@ -57,7 +57,7 @@ Use `--send-feishu` only after the recipient group and bot identity are confirme
 ## Main Workflow
 
 1. Read `config.local.json`.
-2. Validate the handle list. The default list contains 83 AI / Agent / creator accounts.
+2. Validate the handle list. The default list contains 55 AI / Agent / creator accounts and excludes official model/product accounts by default.
 3. Fetch recent posts from each handle with `xreach`, or read the central feed when `source_type` is `feed`.
 4. Exclude retweets and replies by default.
 5. Score candidates by keyword relevance, freshness, and engagement.
@@ -135,7 +135,7 @@ Preferred group message shape:
 ## Resources
 
 - `references/config.example.json`: portable configuration template.
-- `references/default-handles.txt`: default 83-account AI watchlist.
+- `references/default-handles.txt`: default 55-account AI creator watchlist.
 - `references/output-schema.md`: report and Feishu field mapping.
 - `scripts/x_ai_intel_daily.py`: runnable collector and daily briefing generator.
 - `scripts/generate_central_feed.py`: maintainer-side central feed generator.
